@@ -1,6 +1,6 @@
 {
   "description": "New GCP docker log driver",
-  "documentation": "https://github.com/nanoandrew4/ngcplogs/blob/main/README.md",
+  "documentation": "https://github.com/jumager/ngcplogs/blob/main/README.md",
   "entrypoint": ["/usr/bin/ngcplogs"],
   "interface": {
     "types": ["docker.logdriver/1.0"],

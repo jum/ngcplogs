@@ -1,4 +1,4 @@
-PLUGIN_NAME=nanoandrew4/ngcplogs
+PLUGIN_NAME=jumager/ngcplogs
 PLUGIN_TAG=v1.2.0
 PLUGIN_DIR=./ngcplogs-plugin
 all: clean docker rootfs create
