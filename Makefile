@@ -1,5 +1,6 @@
 PLUGIN_NAME=jumager/ngcplogs
-PLUGIN_TAG=v1.2.0
+ARCH=`./arch.sh`
+PLUGIN_TAG=v1.2.0-${ARCH}
 PLUGIN_DIR=./ngcplogs-plugin
 all: clean docker rootfs create
 local: clean docker rootfs create enable
