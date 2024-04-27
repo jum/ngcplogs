@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"google.golang.org/api/option"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"google.golang.org/api/option"
 
 	"github.com/docker/docker/daemon/logger"
 
@@ -77,7 +78,7 @@ type nGCPLogger struct {
 	extractJsonMessage bool
 	extractSeverity    bool
 	excludeTimestamp   bool
-	extractMsg    bool
+	extractMsg         bool
 }
 
 type dockerLogEntry struct {
@@ -202,7 +203,7 @@ func New(info logger.Info) (logger.Logger, error) {
 		extractJsonMessage: true,
 		extractSeverity:    true,
 		excludeTimestamp:   false,
-		extractMsg:    true,
+		extractMsg:         true,
 	}
 
 	if info.Config[logCmdKey] == "true" {
