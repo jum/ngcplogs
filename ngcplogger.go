@@ -311,6 +311,13 @@ func (l *nGCPLogger) extractSeverityFromPayload(m map[string]any) logging.Severi
 					}
 					break
 				}
+				if parsedSeverity, isNumber := rawSeverity.(float64); isNumber {
+					severity = logging.Severity(parsedSeverity)
+					if severity != logging.Default { // severity was parsed correctly, we can remove it from the jsonPayload section
+						delete(m, severityField)
+					}
+					break
+				}
 			}
 		}
 	}
