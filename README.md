@@ -50,7 +50,7 @@ This driver behaves similarly to the `gcplogs` one, but if it detects a JSON log
 {
   "insertId": "yero77f8j919i9",
   "jsonPayload": {
-    "msg": "Updating at 2024-03-15 11:21:38.56773049 +0000 UTC m=+901.837891394\n",
+    "message": "Updating at 2024-03-15 11:21:38.56773049 +0000 UTC m=+901.837891394\n",
     "app": "sample-app",
     "container": {
       "created": "2024-03-15T11:06:28.730214829Z",
@@ -87,11 +87,13 @@ Non JSON logs will not be processed, and will be sent to GCP as they were receiv
 
 ### Installation
 
+The examples assume you want to use the amd64 version of the plugin, but you can replace it for another of the available tags
+
 ```shell
-docker plugin install nanoandrew4/ngcplogs:v1.2.0 --grant-all-permissions
+docker plugin install nanoandrew4/ngcplogs:linux-amd64-v1.3.0 --grant-all-permissions
 ```
 
-In your `daemon.json` file, change the `log-driver` to `nanoandrew4/ngcplogs:v1.2.0`, or just use the logging driver
+In your `daemon.json` file, change the `log-driver` to `nanoandrew4/ngcplogs:linux-amd64-v1.3.0`, or just use the logging driver
 on specific containers instead of applying it globally.
 
 If you have modified your `daemon.json` file, restart the daemon and docker services:
@@ -103,17 +105,19 @@ sudo systemctl daemon-reload && sudo systemctl restart docker
 ```
 
 ### Upgrading
+The examples assume you want to use the amd64 version of the plugin, but you can replace it for another of the available tags
+
 First stop all containers using the plugin. Once they are all stopped, run the following commands to upgrade from 
-v1.1.1 to v1.2.0
+v1.2.0 to linux-amd64-v1.3.0
 
 ```shell
-docker plugin disable nanoandrew4/ngcplogs:v1.1.1
-docker plugin rm nanoandrew4/ngcplogs:v1.1.1
-docker plugin install nanoandrew4/ngcplogs:v1.2.0 --grant-all-permissions
+docker plugin disable nanoandrew4/ngcplogs:v1.2.0
+docker plugin rm nanoandrew4/ngcplogs:v1.2.0
+docker plugin install nanoandrew4/ngcplogs:linux-amd64-v1.3.0 --grant-all-permissions
 ```
 
 If you initially configured `ngcplogs` to be used globally in your `daemon.json` file, change the `log-driver` to 
-`nanoandrew4/ngcplogs:v1.2.0`. Finally, restart the daemon and docker services:
+`nanoandrew4/ngcplogs:linux-amd64-v1.3.0`. Finally, restart the daemon and docker services:
 
 ```shell
 sudo systemctl daemon-reload && sudo systemctl restart docker
@@ -125,22 +129,27 @@ Start all your containers again, and they should be using the new version of the
 
 The following [log-opts](https://docs.docker.com/config/containers/logging/configure/#configure-the-default-logging-driver) are available for configuration:
 
-| log-opt              | default | description                                                                                                                                                                                                                                                               |
-|----------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| extract-json-message | true    | Enables unmarshalling JSON messages and sending the jsonPayload as the unmarshalled map. Kind of the whole point of this plugin, but you can disable it so it behaves just like the `gcplogs` plugin if you wish                                                          |
-| local-logging        | false   | Enables logging to a local file, so logs can be viewed with the `docker logs` command. If false, the command will show no output                                                                                                                                          |
-| extract-severity     | true    | Extracts the severity from JSON logs to set them for the log that will be sent to GCP. It will be removed from the jsonPayload section, since it is set at the root level. Currently the supported severity field names to extract are the following: `severity`, `level` |
-| extract-msg     | true    | Extracts the msg field from JSON logs to set the message field GCP expects. It will be removed from the jsonPayload section, since it is set at the root level. Fields named msg are produced for example by the golang log/slog package. |
-| exclude-timestamp    | false   | Excludes timestamp fields from the final jsonPayload, since docker sends its own nanosecond precision timestamp for each log. Currently it can remove fields with the following names: `timestamp`, `time`, `ts`                                                          |
-| sleep-interval       | 500     | Milliseconds to sleep when there are no logs to send before checking again. The higher the value, the lower the CPU usage will be                                                                                                                                         |
-| credentials-file     |         | Absolute path to the GCP credentials JSON file to use when authenticating (only necessary when running the plugin outside of GCP)                                                                                                                                         |
-| credentials-json     |         | JSON string with the GCP credentials to use when authenticating (only necessary when running the plugin outside of GCP)                                                                                                                                                   |
+| log-opt              | default | description                                                                                                                                                                                                                                                                 |
+|----------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| extract-json-message | true    | Enables unmarshalling JSON messages and sending the jsonPayload as the unmarshalled map. Kind of the whole point of this plugin, but you can disable it so it behaves just like the `gcplogs` plugin if you wish                                                            |
+| local-logging        | false   | Enables logging to a local file, so logs can be viewed with the `docker logs` command. If false, the command will show no output                                                                                                                                            |
+| extract-severity     | true    | Extracts the `severity` from JSON logs to set them for the log that will be sent to GCP. It will be removed from the jsonPayload section, since it is set at the root level. Currently the supported severity field names to extract are the following: `severity`, `level` |
+| extract-msg          | true    | Extracts the `msg` field from JSON logs to set the `message` field GCP expects. It will be removed from the jsonPayload section, since it is set at the root level. Fields named msg are produced for example by the golang log/slog package.                               |
+| exclude-timestamp    | false   | Excludes timestamp fields from the final jsonPayload, since docker sends its own nanosecond precision timestamp for each log. Currently it can remove fields with the following names: `timestamp`, `time`, `ts`                                                            |
+| sleep-interval       | 500     | Milliseconds to sleep when there are no logs to send before checking again. The higher the value, the lower the CPU usage will be                                                                                                                                           |
+| credentials-file     |         | Absolute path to the GCP credentials JSON file to use when authenticating (only necessary when running the plugin outside of GCP)                                                                                                                                           |
+| credentials-json     |         | JSON string with the GCP credentials to use when authenticating (only necessary when running the plugin outside of GCP)                                                                                                                                                     |
 
 ### Building locally
 
-If you want to build the plugin yourself, use the makefile with the following command
+To build locally, you first must install [docker buildx](https://github.com/docker/buildx?tab=readme-ov-file#installing).
+
+If you want to build the plugin yourself for all supported architectures, use the makefile with the following command
 ```shell
 make all
 ```
 
-See the Makefile for other build targets
+If you only want to build a specific architecture, run the following command, specifying the architecture to build
+```shell
+make all PLUGIN_SUPPORTED_ARCHS=linux/amd64
+```
