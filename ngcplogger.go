@@ -356,11 +356,11 @@ func (l *nGCPLogger) extractGcpFromPayload(m map[string]any, entry *logging.Entr
 
 	if l.extractGcp {
 		if val, exists := m["logging.googleapis.com/sourceLocation"]; exists {
-			m := val.(map[string]any)
+			v := val.(map[string]any)
 			entry.SourceLocation = &loggingpb.LogEntrySourceLocation{
-				File:     m["file"].(string),
-				Line:     int64(m["line"].(float64)),
-				Function: m["function"].(string),
+				File:     v["file"].(string),
+				Line:     int64(v["line"].(float64)),
+				Function: v["function"].(string),
 			}
 			delete(m, "logging.googleapis.com/sourceLocation")
 		}
@@ -377,8 +377,8 @@ func (l *nGCPLogger) extractGcpFromPayload(m map[string]any, entry *logging.Entr
 			delete(m, "logging.googleapis.com/trace_sampled")
 		}
 		if val, exists := m["logging.googleapis.com/labels"]; exists {
-			m := val.(map[string]any)
-			for k, v := range m {
+			v := val.(map[string]any)
+			for k, v := range v {
 				entry.Labels[k] = v.(string)
 			}
 			delete(m, "logging.googleapis.com/labels")
