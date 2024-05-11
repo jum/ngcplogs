@@ -79,6 +79,6 @@ ARCH=$(1)
 $(eval TAG_ARCH=$(shell echo ${ARCH} | sed 's~/~-~g'))
 
 docker plugin push ${PLUGIN_NAME}:${TAG_ARCH}-${PLUGIN_TAG}
-docker plugin push ghcr.io/${PLUGIN_NAME}:${TAG_ARCH}-${PLUGIN_TAG}
+#docker plugin push ghcr.io/${PLUGIN_NAME}:${TAG_ARCH}-${PLUGIN_TAG}
 
 endef
