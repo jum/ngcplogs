@@ -15,6 +15,7 @@ import (
 
 	"cloud.google.com/go/compute/metadata"
 	"cloud.google.com/go/logging"
+	"cloud.google.com/go/logging/apiv2/loggingpb"
 	"github.com/containerd/log"
 	mrpb "google.golang.org/genproto/googleapis/api/monitoredres"
 )
@@ -79,6 +80,7 @@ type nGCPLogger struct {
 	extractSeverity    bool
 	excludeTimestamp   bool
 	extractMsg         bool
+	extractGcp         bool
 }
 
 type dockerLogEntry struct {
@@ -204,6 +206,7 @@ func New(info logger.Info) (logger.Logger, error) {
 		extractSeverity:    true,
 		excludeTimestamp:   false,
 		extractMsg:         true,
+		extractGcp:         false,
 	}
 
 	if info.Config[logCmdKey] == "true" {
@@ -221,6 +224,9 @@ func New(info logger.Info) (logger.Logger, error) {
 	}
 	if info.Config["extract-msg"] == "false" {
 		l.extractMsg = false
+	}
+	if info.Config["extract-gcp"] == "true" {
+		l.extractGcp = true
 	}
 
 	if instanceResource != nil {
@@ -264,20 +270,25 @@ func (l *nGCPLogger) Log(lMsg *logger.Message) error {
 
 	if len(logLine) > 0 {
 		var payload any
-		severity := logging.Default
+		entry := logging.Entry{
+			Labels:    map[string]string{},
+			Timestamp: ts,
+			Severity:  logging.Default,
+		}
 
 		if l.extractJsonMessage && logLine[0] == '{' && logLine[len(logLine)-1] == '}' {
 			var m map[string]any
 			err := json.Unmarshal(logLine, &m)
 			if err != nil {
 				payload = fmt.Sprintf("Error parsing JSON: %s", string(logLine))
-				severity = logging.Critical
+				entry.Severity = logging.Critical
 			} else {
-				severity = l.extractSeverityFromPayload(m)
+				entry.Severity = l.extractSeverityFromPayload(m)
 				l.excludeTimestampFromPayload(m)
 				l.extractMsgFromPayload(m)
 				m["instance"] = l.instance
 				m["container"] = l.container
+				l.extractGcpFromPayload(m, &entry)
 				payload = m
 			}
 		} else {
@@ -288,12 +299,8 @@ func (l *nGCPLogger) Log(lMsg *logger.Message) error {
 			}
 		}
 
-		l.logger.Log(logging.Entry{
-			Labels:    map[string]string{},
-			Timestamp: ts,
-			Severity:  severity,
-			Payload:   payload,
-		})
+		entry.Payload = payload
+		l.logger.Log(entry)
 	}
 	return nil
 }
@@ -341,6 +348,40 @@ func (l *nGCPLogger) extractMsgFromPayload(m map[string]any) {
 		if msg, exists := m["msg"]; exists {
 			m["message"] = msg
 			delete(m, "msg")
+		}
+	}
+}
+
+func (l *nGCPLogger) extractGcpFromPayload(m map[string]any, entry *logging.Entry) {
+
+	if l.extractGcp {
+		if val, exists := m["logging.googleapis.com/sourceLocation"]; exists {
+			m := val.(map[string]any)
+			entry.SourceLocation = &loggingpb.LogEntrySourceLocation{
+				File:     m["file"].(string),
+				Line:     int64(m["line"].(float64)),
+				Function: m["function"].(string),
+			}
+			delete(m, "logging.googleapis.com/sourceLocation")
+		}
+		if val, exists := m["logging.googleapis.com/trace"]; exists {
+			entry.Trace = val.(string)
+			delete(m, "logging.googleapis.com/trace")
+		}
+		if val, exists := m["logging.googleapis.com/spanId"]; exists {
+			entry.SpanID = val.(string)
+			delete(m, "logging.googleapis.com/spanId")
+		}
+		if val, exists := m["logging.googleapis.com/trace_sampled"]; exists {
+			entry.TraceSampled = val.(bool)
+			delete(m, "logging.googleapis.com/trace_sampled")
+		}
+		if val, exists := m["logging.googleapis.com/labels"]; exists {
+			m := val.(map[string]any)
+			for k, v := range m {
+				entry.Labels[k] = v.(string)
+			}
+			delete(m, "logging.googleapis.com/labels")
 		}
 	}
 }
