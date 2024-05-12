@@ -414,6 +414,7 @@ func (l *nGCPLogger) extractCaddyFromPayload(m map[string]any, entry *logging.En
 				Scheme:  h,
 				Host:    v["host"].(string),
 				RawPath: v["uri"].(string),
+				Path:    v["uri"].(string),
 			}
 			hr.RequestSize = int64(m["bytes_read"].(float64))
 			hr.Status = int(m["status"].(float64))
