@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -75,12 +77,14 @@ type nGCPLogger struct {
 	logger    *logging.Logger
 	instance  *instanceInfo
 	container *containerInfo
+	projectID string
 
 	extractJsonMessage bool
 	extractSeverity    bool
 	excludeTimestamp   bool
 	extractMsg         bool
 	extractGcp         bool
+	extractCaddy       bool
 }
 
 type dockerLogEntry struct {
@@ -202,11 +206,13 @@ func New(info logger.Info) (logger.Logger, error) {
 			Created:   info.ContainerCreated,
 			Metadata:  extraAttributes,
 		},
+		projectID:          project,
 		extractJsonMessage: true,
 		extractSeverity:    true,
 		excludeTimestamp:   false,
 		extractMsg:         true,
 		extractGcp:         false,
+		extractCaddy:       false,
 	}
 
 	if info.Config[logCmdKey] == "true" {
@@ -227,6 +233,9 @@ func New(info logger.Info) (logger.Logger, error) {
 	}
 	if info.Config["extract-gcp"] == "true" {
 		l.extractGcp = true
+	}
+	if info.Config["extract-caddy"] == "true" {
+		l.extractCaddy = true
 	}
 
 	if instanceResource != nil {
@@ -289,6 +298,7 @@ func (l *nGCPLogger) Log(lMsg *logger.Message) error {
 				m["instance"] = l.instance
 				m["container"] = l.container
 				l.extractGcpFromPayload(m, &entry)
+				l.extractCaddyFromPayload(m, &entry)
 				payload = m
 			}
 		} else {
@@ -382,6 +392,44 @@ func (l *nGCPLogger) extractGcpFromPayload(m map[string]any, entry *logging.Entr
 				entry.Labels[k] = v.(string)
 			}
 			delete(m, "logging.googleapis.com/labels")
+		}
+	}
+}
+
+func (l *nGCPLogger) extractCaddyFromPayload(m map[string]any, entry *logging.Entry) {
+
+	if l.extractCaddy {
+		if val, exists := m["request"]; exists {
+			hr := logging.HTTPRequest{
+				Request: &http.Request{},
+			}
+			v := val.(map[string]any)
+			hr.Request.Method = v["method"].(string)
+			_, isTLS := v["tls"]
+			var h = "http://"
+			if isTLS {
+				h = "https://"
+			}
+			hr.Request.URL = &url.URL{
+				Scheme:  h,
+				Host:    v["host"].(string),
+				RawPath: v["uri"].(string),
+			}
+			hr.RequestSize = int64(m["bytes_read"].(float64))
+			hr.Status = int(m["status"].(float64))
+			hr.ResponseSize = int64(m["size"].(float64))
+			hr.Latency = time.Duration(m["duration"].(float64) * float64(time.Second))
+			hr.Request.Proto = v["proto"].(string)
+			hr.RemoteIP = v["remote_ip"].(string) + ":" + v["remote_port"].(string)
+
+			entry.HTTPRequest = &hr
+			//Caddy request contains more data, don't
+			//delete.
+			//delete(m, "request")
+		}
+		if val, exists := m["traceID"]; exists {
+			entry.Trace = "projects/" + l.projectID + "/traces/" + val.(string)
+			delete(m, "traceID")
 		}
 	}
 }
