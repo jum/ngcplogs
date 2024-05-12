@@ -406,9 +406,9 @@ func (l *nGCPLogger) extractCaddyFromPayload(m map[string]any, entry *logging.En
 			v := val.(map[string]any)
 			hr.Request.Method = v["method"].(string)
 			_, isTLS := v["tls"]
-			var h = "http://"
+			var h = "http"
 			if isTLS {
-				h = "https://"
+				h = "https"
 			}
 			hr.Request.URL = &url.URL{
 				Scheme:  h,
