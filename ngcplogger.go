@@ -434,7 +434,7 @@ func (l *nGCPLogger) extractCaddyFromPayload(m map[string]any, entry *logging.En
 			if t, ok := v["headers"]; ok {
 				headers := t.(map[string]any)
 				for h, v := range headers {
-					hr.Header.Set(h, v.(string))
+					hr.Request.Header.Set(h, v.(string))
 				}
 			}
 			entry.HTTPRequest = &hr
