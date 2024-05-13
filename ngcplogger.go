@@ -401,7 +401,9 @@ func (l *nGCPLogger) extractCaddyFromPayload(m map[string]any, entry *logging.En
 	if l.extractCaddy {
 		if val, exists := m["request"]; exists {
 			hr := logging.HTTPRequest{
-				Request: &http.Request{},
+				Request: &http.Request{
+					Header: http.Header{},
+				},
 			}
 			v := val.(map[string]any)
 			hr.Request.Method = v["method"].(string)
