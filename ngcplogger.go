@@ -431,6 +431,12 @@ func (l *nGCPLogger) extractCaddyFromPayload(m map[string]any, entry *logging.En
 			hr.Request.Proto = v["proto"].(string)
 			hr.RemoteIP = v["remote_ip"].(string) + ":" + v["remote_port"].(string)
 
+			if t, ok := v["headers"]; ok {
+				headers := t.(map[string]any)
+				for h, v := range headers {
+					hr.Header.Set(h, v.(string))
+				}
+			}
 			entry.HTTPRequest = &hr
 			//Caddy request contains more data, don't
 			//delete.
