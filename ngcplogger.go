@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
+	"reflect"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -362,34 +365,48 @@ func (l *nGCPLogger) extractMsgFromPayload(m map[string]any) {
 	}
 }
 
+func assertOrLog[T any](val any) T {
+	var v T
+	var ok bool
+	v, ok = val.(T)
+	if !ok {
+		_, file, line, ok := runtime.Caller(1)
+		if !ok {
+			file = "unknown"
+		}
+		slog.Error("unexpected type", "want", reflect.TypeOf(v).String(), "got", reflect.TypeOf(val).String(), "file", file, "line", line)
+	}
+	return v
+}
+
 func (l *nGCPLogger) extractGcpFromPayload(m map[string]any, entry *logging.Entry) {
 
 	if l.extractGcp {
 		if val, exists := m["logging.googleapis.com/sourceLocation"]; exists {
-			v := val.(map[string]any)
+			v := assertOrLog[map[string]any](val)
 			entry.SourceLocation = &loggingpb.LogEntrySourceLocation{
-				File:     v["file"].(string),
-				Line:     int64(v["line"].(float64)),
-				Function: v["function"].(string),
+				File:     assertOrLog[string](v["file"]),
+				Line:     int64(assertOrLog[float64](v["line"])),
+				Function: assertOrLog[string](v["function"]),
 			}
 			delete(m, "logging.googleapis.com/sourceLocation")
 		}
 		if val, exists := m["logging.googleapis.com/trace"]; exists {
-			entry.Trace = val.(string)
+			entry.Trace = assertOrLog[string](val)
 			delete(m, "logging.googleapis.com/trace")
 		}
 		if val, exists := m["logging.googleapis.com/spanId"]; exists {
-			entry.SpanID = val.(string)
+			entry.SpanID = assertOrLog[string](val)
 			delete(m, "logging.googleapis.com/spanId")
 		}
 		if val, exists := m["logging.googleapis.com/trace_sampled"]; exists {
-			entry.TraceSampled = val.(bool)
+			entry.TraceSampled = assertOrLog[bool](val)
 			delete(m, "logging.googleapis.com/trace_sampled")
 		}
 		if val, exists := m["logging.googleapis.com/labels"]; exists {
-			v := val.(map[string]any)
+			v := assertOrLog[map[string]any](val)
 			for k, v := range v {
-				entry.Labels[k] = v.(string)
+				entry.Labels[k] = assertOrLog[string](v)
 			}
 			delete(m, "logging.googleapis.com/labels")
 		}
