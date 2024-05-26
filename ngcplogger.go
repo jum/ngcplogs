@@ -422,8 +422,8 @@ func (l *nGCPLogger) extractCaddyFromPayload(m map[string]any, entry *logging.En
 					Header: make(http.Header),
 				},
 			}
-			v := val.(map[string]any)
-			hr.Request.Method = v["method"].(string)
+			v := assertOrLog[map[string]any](val)
+			hr.Request.Method = assertOrLog[string](v["method"])
 			_, isTLS := v["tls"]
 			var h = "http"
 			if isTLS {
@@ -431,30 +431,30 @@ func (l *nGCPLogger) extractCaddyFromPayload(m map[string]any, entry *logging.En
 			}
 			hr.Request.URL = &url.URL{
 				Scheme:  h,
-				Host:    v["host"].(string),
-				RawPath: v["uri"].(string),
-				Path:    v["uri"].(string),
+				Host:    assertOrLog[string](v["host"]),
+				RawPath: assertOrLog[string](v["uri"]),
+				Path:    assertOrLog[string](v["uri"]),
 			}
 			if t, ok := m["bytes_read"]; ok {
-				hr.RequestSize = int64(t.(float64))
+				hr.RequestSize = int64(assertOrLog[float64](t))
 			}
 			if t, ok := m["status"]; ok {
-				hr.Status = int(t.(float64))
+				hr.Status = int(assertOrLog[float64](t))
 			}
 			if t, ok := m["size"]; ok {
-				hr.ResponseSize = int64(t.(float64))
+				hr.ResponseSize = int64(assertOrLog[float64](t))
 			}
 			if t, ok := m["duration"]; ok {
-				hr.Latency = time.Duration(t.(float64) * float64(time.Second))
+				hr.Latency = time.Duration(assertOrLog[float64](t) * float64(time.Second))
 			}
-			hr.Request.Proto = v["proto"].(string)
-			hr.RemoteIP = v["remote_ip"].(string) + ":" + v["remote_port"].(string)
+			hr.Request.Proto = assertOrLog[string](v["proto"])
+			hr.RemoteIP = assertOrLog[string](v["remote_ip"]) + ":" + assertOrLog[string](v["remote_port"])
 
 			if t, ok := v["headers"]; ok {
-				headers := t.(map[string]any)
+				headers := assertOrLog[map[string]any](t)
 				for h, v := range headers {
-					for _, s := range v.([]any) {
-						hr.Request.Header.Add(h, s.(string))
+					for _, s := range assertOrLog[[]any](v) {
+						hr.Request.Header.Add(h, assertOrLog[string](s))
 					}
 				}
 			}
