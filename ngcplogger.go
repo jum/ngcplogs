@@ -413,9 +413,6 @@ func (l *nGCPLogger) extractGcpFromPayload(m map[string]any, entry *logging.Entr
 	}
 }
 
-/*
- * this comment is for debugging build problems.
- */
 func (l *nGCPLogger) extractCaddyFromPayload(m map[string]any, entry *logging.Entry) {
 
 	if l.extractCaddy {
