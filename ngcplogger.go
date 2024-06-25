@@ -367,14 +367,22 @@ func (l *nGCPLogger) extractMsgFromPayload(m map[string]any) {
 
 func assertOrLog[T any](val any) T {
 	var v T
-	var ok bool
-	v, ok = val.(T)
-	if !ok {
+	if val == nil {
 		_, file, line, ok := runtime.Caller(1)
 		if !ok {
 			file = "unknown"
 		}
-		slog.Error("unexpected type", "want", reflect.TypeOf(v).String(), "got", reflect.TypeOf(val).String(), "file", file, "line", line)
+		slog.Error("unexpected nil value", "file", file, "line", line)
+	} else {
+		var ok bool
+		v, ok = val.(T)
+		if !ok {
+			_, file, line, ok := runtime.Caller(1)
+			if !ok {
+				file = "unknown"
+			}
+			slog.Error("unexpected type", "want", reflect.TypeOf(v).String(), "got", reflect.TypeOf(val).String(), "file", file, "line", line)
+		}
 	}
 	return v
 }
