@@ -324,6 +324,17 @@ func (l *nGCPLogger) extractSeverityFromPayload(m map[string]any) logging.Severi
 	if l.extractSeverity {
 		for _, severityField := range severityFields {
 			if rawSeverity, exists := m[severityField]; exists {
+				// check for some zap severity levels and translate
+				switch rawSeverity {
+				case "warn":
+					rawSeverity = "warning"
+				case "dpanic":
+					fallthrough
+				case "panic":
+					rawSeverity = "critical"
+				case "fatal":
+					rawSeverity = "alert"
+				}
 				if parsedSeverity, isString := rawSeverity.(string); isString {
 					severity = logging.ParseSeverity(parsedSeverity)
 					if severity != logging.Default { // severity was parsed correctly, we can remove it from the jsonPayload section
