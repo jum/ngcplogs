@@ -486,6 +486,11 @@ func (l *nGCPLogger) extractCaddyFromPayload(m map[string]any, entry *logging.En
 			entry.Trace = "projects/" + l.projectID + "/traces/" + val.(string)
 			delete(m, "traceID")
 		}
+		if val, exists := m["spanID"]; exists {
+			entry.SpanID = val.(string)
+			entry.TraceSampled = true
+			delete(m, "spanID")
+		}
 	}
 }
 
